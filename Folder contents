@@ -1,0 +1,13 @@
+Target files :-
+
+FIFO.sv
+FIFO_sequencer.sv
+FIFO_sequence.sv
+FIFO_driver.sv
+FIFO_monitor.sv
+FIFO_scoreboard.sv
+FIFO_agent.sv
+FIFO_env.sv
+FIFO_test.sv
+FIFO_top.sv
+
