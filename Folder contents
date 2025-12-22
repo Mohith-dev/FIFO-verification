@@ -9,5 +9,5 @@ FIFO_scoreboard.sv
 FIFO_agent.sv
 FIFO_env.sv
 FIFO_test.sv
-FIFO_top.sv
+FIFO_top.sv -> this is where we instantite the dut and also the interface and conenct along with necessary clock adn reset and start the uvm simulation
 
