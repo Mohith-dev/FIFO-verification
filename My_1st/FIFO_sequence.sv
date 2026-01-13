@@ -88,17 +88,49 @@ package FIFO_sequence_pkg;
    class FIFO_full_sequence extends uvm_sequence #(FIFO_seq_item);
     `uvm_object_utils(FIFO_full_sequence)
 
+    FIFO_seq_item seq_item;
+
     function new(string name = "FIFO_full_sequence");
       super.new(name);
     endfunction
 
     task body();
-      FIFO_write_only_sequence fifo_write_oper;
-      fifo_write_oper = FIFO_write_only_sequence::type_id::create("fifo_write_oper");
-      repeat (FIFO_DEPTH) begin
-        fifo_write_oper.start(m_sequencer);  // start the child sequence
+     // reset first
+     seq_item = FIFO_seq_item::type_id::create("seq_item");
+     // you dont have to create new transaction item after every finish , you can just rewrite the values 
+     start_item(seq_item);
+     seq_item.rst_n = 0;
+     finish_item(seq_item);
+
+     // releasing the reset
+     start_item(seq_item);
+     seq_item.rst_n = 1;
+     seq_item.wr_en = 0;
+     seq_item.rd_en = 0;
+     finish_item(seq_item);
+
+
+    // Fill up the fifo 
+      repeat(FIFO_DEPTH)begin
+      start_item(seq_item);
+      seq_item.wr_en = 1;
+      seq_item.rd_en = 0;
+      seq_item.rst_n = 1;
+      // assert(seq_item.randomize());
+      seq_item.data_in = $urandom();
+      finish_item(seq_item);
       end
+
+      // try to fill one more
+
+      start_item(seq_item);
+      seq_item.wr_en  = 1;
+      seq_item.rd_en = 0;
+      seq_item.rst_n = 1;
+      seq_item.data_in = $urandom();
+      finish_item(seq_item);
     endtask
 
   endclass
 endpackage
+
