@@ -1,4 +1,4 @@
-
+// this is a commit  
 interface FIFO_if(input clk);
 // its just a container that hold the signals to say simply 
 // what does instantitate interface mean ? 
