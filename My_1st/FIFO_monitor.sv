@@ -32,6 +32,7 @@ package FIFO_monitor_pkg;
     task run_phase(uvm_phase phase);
 
       super.run_phase(phase);
+      fork 
       forever begin
         @(posedge FIFO_monitor_vif.clk or negedge FIFO_monitor_vif.rst_n)
 
@@ -74,6 +75,7 @@ package FIFO_monitor_pkg;
         mon_ap.write(stim_seq_item);
         `uvm_info("run_phase", stim_seq_item.convert2string_stimulus(), UVM_HIGH)
       end
+      join_none
 
     endtask
 
