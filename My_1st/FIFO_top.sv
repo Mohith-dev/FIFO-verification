@@ -14,6 +14,6 @@ module FIFO_top();
         // uvm_config_db stores a virtual interface handle in the UVM hierarchy, not the real interface itself.
         // the first arugment tells where do we start searching , the second arguemtn who does this apply to ?
         uvm_config_db #(virtual FIFO_if)::set(null, "uvm_test_top", "FIFO_IF", FIFOif);
-        run_test("FIFO_full_test");
+        run_test();
     end
 endmodule
