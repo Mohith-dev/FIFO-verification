@@ -15,6 +15,8 @@ package FIFO_scoreboard_pkg;
     uvm_tlm_analysis_fifo #(FIFO_seq_item) sb_fifo;
     FIFO_seq_item seq_item_sb;
 
+    logic [5:0] level;
+
     // ------------------------------
     // Reference model (DATA FIFO)
     // ------------------------------
@@ -46,19 +48,66 @@ package FIFO_scoreboard_pkg;
     // ------------------------------
     task ref_model();
 
-      // RESET behavior
-      if (!seq_item_sb.rst_n) begin
-        ref_fifo.delete();
-        data_out_ref = '0;
-        return;
-      end  // WRITE
-      else if (seq_item_sb.wr_en && ref_fifo.size() < FIFO_DEPTH) begin
+  // RESET
+  if (!seq_item_sb.rst_n) begin
+    ref_fifo.delete();
+    data_out_ref = '0;
+    return;
+  end
+
+  // Decode operation
+  case ({seq_item_sb.wr_en, seq_item_sb.rd_en})
+
+    2'b10: begin // WRITE only
+      if (ref_fifo.size() < FIFO_DEPTH) begin
         ref_fifo.push_back(seq_item_sb.data_in);
-      end  // READ
-      else if (seq_item_sb.rd_en && ref_fifo.size() > 0) begin
-        data_out_ref = ref_fifo.pop_front();
-      end else begin
       end
+    end
+
+    2'b01: begin // READ only
+      if (ref_fifo.size() > 0) begin
+        data_out_ref = ref_fifo.pop_front();
+      end
+    end
+
+    2'b11: begin // BOTH asserted
+      if (ref_fifo.size() == 0) begin
+        // EMPTY → behave like write
+        ref_fifo.push_back(seq_item_sb.data_in);
+      end
+      else if (ref_fifo.size() == FIFO_DEPTH) begin
+        // FULL → behave like read
+        data_out_ref = ref_fifo.pop_front();
+      end
+      else begin
+        // NORMAL → read and write, count unchanged
+        data_out_ref = ref_fifo.pop_front();
+        ref_fifo.push_back(seq_item_sb.data_in);
+      end
+    end
+
+    default: begin
+      // 2'b00 → do nothing
+    end
+
+  endcase
+
+endtask
+
+    task level_calculator();
+      if (!seq_item_sb.rst_n) level = 0;
+      else begin
+        if ((seq_item_sb.rd_en && level == 0) || (seq_item_sb.wr_en && level == 15) || (seq_item_sb.wr_en == 0) && (seq_item_sb.rd_en==0)) begin
+          level = level;
+        end else if (seq_item_sb.wr_en) level++;
+
+        else if (seq_item_sb.rd_en) level--;
+
+        else begin
+          `uvm_info("SCOREBOARD", "ERROR with level_calculator", UVM_NONE)
+        end
+      end
+
 
     endtask
 
@@ -67,28 +116,48 @@ package FIFO_scoreboard_pkg;
     // ------------------------------
     task check_data();
       ref_model();
-      if (seq_item_sb.rd_en) begin
-        `uvm_info("ref_model", "read transaction is being evaluated", UVM_NONE)
-        if (seq_item_sb.data_out !== data_out_ref) begin
-          `uvm_error("SCOREBOARD", $sformatf("DATA MISMATCH: Expected = %0h, Got = %0h",
-                                             data_out_ref, seq_item_sb.data_out))
-          error_count++;
-        end else begin
-          `uvm_info("SCOREBOARD", $sformatf("DATA MATCH: %0h at time %0t", data_out_ref, $time),
-                    UVM_HIGH)
-          correct_count++;
-        end
+      level_calculator();
+      if(!seq_item_sb.rst_n)begin
+        correct_count++;
       end
-      if (seq_item_sb.wr_en) begin
-        `uvm_info("ref_model", "write transaction is being evaluated", UVM_NONE)
-        if (seq_item_sb.wr_ack || seq_item_sb.overflow) begin
-          `uvm_info("SCOREBOARD", "Write transaction successful", UVM_NONE)
+      // checking the write
+      else if ((({seq_item_sb.wr_en, seq_item_sb.rd_en}) == 2'b10) || ({seq_item_sb.wr_en,seq_item_sb.rd_en}==2'b11) && level == 0 ) begin
+        `uvm_info("SCOREBOARD", "checking in write", UVM_NONE)
+        if (seq_item_sb.wr_ack) begin
+          `uvm_info("SCOREBOARD", "Write transaction is successful", UVM_NONE)
+          correct_count++;
+        end else if (level == FIFO_DEPTH - 1) begin
+          `uvm_info("SCOREBOARD", "Write transaction is successful reached the depth", UVM_NONE)
           correct_count++;
         end else begin
-          `uvm_error("SCOREBOARD", "Write transaction failed")
+          `uvm_fatal("SCOREBOARD", "Write transaction failed")
           error_count++;
         end
       end
+      else if ((({seq_item_sb.wr_en, seq_item_sb.rd_en}) == 2'b01) || ({seq_item_sb.wr_en,seq_item_sb.rd_en}==2'b11) && level == FIFO_DEPTH-1) begin
+        `uvm_info("SCOREBOARD", "checking in read", UVM_NONE)
+        if (seq_item_sb.data_out == data_out_ref) begin
+          `uvm_info("scoreboard", "data match", UVM_NONE)
+          correct_count++;
+        end
+        else if(level == 0)begin
+          `uvm_info("SCOREBOARD","READ transaction has been invoked at empty",UVM_NONE)
+        end else begin
+          `uvm_fatal("scoreboard", "data mismatch")
+          error_count++;
+        end
+      end else begin
+        if (({seq_item_sb.wr_en, seq_item_sb.rd_en} == 2'b11)) begin
+          if ((seq_item_sb.wr_ack) && (seq_item_sb.data_out == data_out_ref)) begin
+            `uvm_info("SCOREBOARD", "BOTH THE OPERATIONS WERE PERFORMED", UVM_NONE)
+            correct_count++;
+          end else begin
+            `uvm_fatal("DOUBLE_OPERATION", "error at double operation")
+            error_count++;
+          end
+        end
+      end
+
     endtask
 
     // ------------------------------
@@ -102,13 +171,16 @@ package FIFO_scoreboard_pkg;
         `uvm_info("Scoreboard",
                   "------------------------------------------------------------------", UVM_NONE)
         `uvm_info("SCOREBOARD", $sformatf(
-                  " level is %0d\n Received seq_item:\n%s",
-                  seq_item_sb.level,
-                  seq_item_sb.convert2string()
-                  ), UVM_MEDIUM)
+                  " \nlevel is %0d\n Received seq_item:\n%s data_out_ref :%0h ",
+                  level,
+                  seq_item_sb.convert2string(),
+                  data_out_ref
+                  ), UVM_NONE)
+
 
 
         check_data();
+        `uvm_info("SCOREBOARD", "TRANSACTION CHECK COMPLETED", UVM_NONE)
       end
     endtask
 
@@ -126,3 +198,20 @@ package FIFO_scoreboard_pkg;
   endclass
 
 endpackage
+
+// forever begin
+//           @(posedge seq_item_sb.clk or negedge seq_item_sb.rst_n)
+
+//           if (!seq_item_sb.rst_n) level = 0;
+//           else begin
+
+//             if(((({seq_item_sb.wr_en,seq_item_sb.rd_en}) == 2'b10) && !seq_item_sb.full) || ((({seq_item_sb.wr_en,seq_item_sb.rd_en}) == 2'b11) && seq_item_sb.empty))
+//               level++;
+
+//             else if (((({seq_item_sb.wr_en,seq_item_sb.rd_en}) == 2'b01) && !seq_item_sb.empty) || ((({seq_item_sb.wr_en,seq_item_sb.rd_en}) == 2'b11) && seq_item_sb.full))
+//               level--;
+
+//             else begin
+//             end
+//           end
+//         end
