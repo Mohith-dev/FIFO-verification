@@ -23,9 +23,16 @@ TEST ?= FIFO_smoke_test
 WAVEDIR = waves
 COVDIR  = cov
 
+# all these variables get expanded when running the command 
+
+#you have defined a target named compile 
+# when you do make compile , you are saying
+#"make, run the commands under teh target named compile"
 compile:
 	$(VCS) $(VCS_FLAGS) -f $(FILELIST) -o simv
 
+#you have defined a target named run with dependency as compile
+# what it means that before i can run teh commands of the run target , i need to run teh comamnds of compile target 
 run: compile
 	mkdir -p $(WAVEDIR) $(COVDIR)
 	$(SIMV) \
@@ -35,5 +42,6 @@ run: compile
 	-cm_dir $(COVDIR)/$(TEST) \
 	+ntb_random_seed_automatic
 
+#shell commands normally end at a newline , this \ tells that keep reading the next line as part of the command 
 clean:
 	rm -rf simv csrc *.log $(WAVEDIR) $(COVDIR) urgReport*
