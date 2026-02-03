@@ -115,11 +115,11 @@ package FIFO_coverage_pkg;
       cp_wr: coverpoint seq_item_cov.wr_en {bins wr0 = {0}; bins wr1 = {1};}
 
     // Overflow correctness — MUST only happen when write + full
-    //       cx_overflow_correct: cross cp_overflow, cp_full, cp_wr {
-    //   illegal_bins bad_overflow =
-    //     binsof(cp_overflow.of)
-    //     with !(cp_full.full && cp_wr.wr1);
-    // }
+          cx_overflow_correct: cross cp_overflow, cp_full, cp_wr {
+      illegal_bins bad_overflow =
+        binsof(cp_overflow.of)
+        with !(cp_full.full && cp_wr.wr1);
+    }
 
 
     endgroup
@@ -135,12 +135,12 @@ package FIFO_coverage_pkg;
 
       cp_rd: coverpoint seq_item_cov.rd_en {bins rd0 = {0}; bins rd1 = {1};}
 
-    // correctness check
-    // cx_underflow_correct: cross cp_underflow, cp_empty, cp_rd{
-    //   illegal_bins bad_underflow =
-    //   binsof(cp_underflow.uf) &&
-    //  !(binsof(cp_empty.empty) && binsof(cp_rd.rd1));
-    // }
+//     correctness check
+    cx_underflow_correct: cross cp_underflow, cp_empty, cp_rd{
+      illegal_bins bad_underflow =
+      binsof(cp_underflow.uf) &&
+     !(binsof(cp_empty.empty) && binsof(cp_rd.rd1));
+    }
 
     endgroup
 
