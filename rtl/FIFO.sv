@@ -51,6 +51,7 @@ assign FIFOif.empty = (count == 0)? 1 : 0;
 assign FIFOif.underflow = (FIFOif.empty && FIFOif.rd_en)? 1 : 0; 
 assign FIFOif.almostempty = (count == 1)? 1 : 0;
 assign FIFOif.wr_ack = ((count != FIFOif.FIFO_DEPTH) && FIFOif.wr_en)? 1 : 0;
+assign FIFOif.rd_ack = ((count != 0) && FIFOif.rd_en)?1:0;
 assign FIFOif.almostfull = (count == FIFOif.FIFO_DEPTH - 1)? 1 : 0;
 assign FIFOif.overflow = (FIFOif.full && FIFOif.wr_en)? 1 : 0;
 

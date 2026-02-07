@@ -33,6 +33,7 @@ package FIFO_driver_pkg;
                 FIFO_driver_vif.data_in = stim_seq_item.data_in;
                 FIFO_driver_vif.wr_en = stim_seq_item.wr_en;
                 FIFO_driver_vif.rd_en = stim_seq_item.rd_en;
+		// if rtl changes its timing (non blocking , skewing , pipeling ), then we have a problem and alos we are manually trying to avoid the race 
                 @(negedge FIFO_driver_vif.clk);
                 seq_item_port.item_done();
                 `uvm_info("run_phase", stim_seq_item.convert2string_stimulus(), UVM_HIGH)

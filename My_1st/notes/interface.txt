@@ -1,0 +1,21 @@
+ clocking block is a simulation construct , if you access the signals through this block for driving or sampling , then the timing rules as mentioned in it will be followed 
+ you are not adding any delays , you are just enforcing order at the simulation scheduler level
+
+ ------------------------------------------------------------------------------------------------------------
+
+this below line sets the defulat timing rules for all signals declared inside the clocking block 
+
+default input #1step output #0;
+
+when the driver writes to these signals through drv_cb , the simulator schedules the updates at zero skew from teh clocking event, 
+
+
+------------------------------------------------------------------------------------------------------------	
+
+The clocking event is the event expression that defines the timing reference for the clocking block.
+the clocking event specifies teh clockedge relative to which all driving and sampling in the clocking block is scheduled 
+
+
+default input #1step output #0;
+advance #1 means go to the next delta at time t=100ns(say we have posedge here) something like this
+ 

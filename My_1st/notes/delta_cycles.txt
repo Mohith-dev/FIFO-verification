@@ -1,0 +1,22 @@
+always @(posedge clk)
+  a <= b;
+
+always @(a)
+  c <= a;
+
+
+At the same posedge clk:
+a <= b schedules an NBA update
+a changes → triggers the second always block
+That second block schedules another NBA update
+This cannot happen in one delta.
+So the simulator must:
+finish one delta
+see new events
+start another delta
+repeat until stable
+Only then can time move forward
+
+SO WE HAVE MULTIPLE DELTA CYCLES IN A SINGLE SIMULATION TIME 
+
+Time advances only when there are no more runnable events at the current time.
